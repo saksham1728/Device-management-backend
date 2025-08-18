@@ -1,0 +1,36 @@
+{
+  "info": {
+    "name": "Device Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        { "name": "Signup", "request": { "method": "POST", "url": "{{baseUrl}}/auth/signup", "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123\",\n  \"role\": \"user\"\n}" } } },
+        { "name": "Login", "request": { "method": "POST", "url": "{{baseUrl}}/auth/login", "body": { "mode": "raw", "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        { "name": "Register Device", "request": { "method": "POST", "url": "{{baseUrl}}/devices", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Living Room Light\",\n  \"type\": \"light\",\n  \"status\": \"active\"\n}" } } },
+        { "name": "List Devices", "request": { "method": "GET", "url": "{{baseUrl}}/devices" } },
+        { "name": "Update Device", "request": { "method": "PATCH", "url": "{{baseUrl}}/devices/:id", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bedroom Light\",\n  \"type\": \"light\",\n  \"status\": \"inactive\"\n}" } } },
+        { "name": "Delete Device", "request": { "method": "DELETE", "url": "{{baseUrl}}/devices/:id" } },
+        { "name": "Device Heartbeat", "request": { "method": "POST", "url": "{{baseUrl}}/devices/:id/heartbeat", "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Logs & Analytics",
+      "item": [
+        { "name": "Create Log", "request": { "method": "POST", "url": "{{baseUrl}}/devices/:id/logs", "body": { "mode": "raw", "raw": "{\n  \"event\": \"units_consumed\",\n  \"value\": 2.5\n}" } } },
+        { "name": "Get Logs", "request": { "method": "GET", "url": "{{baseUrl}}/devices/:id/logs?limit=10" } },
+        { "name": "Get Usage", "request": { "method": "GET", "url": "{{baseUrl}}/devices/:id/usage?range=24h" } }
+      ]
+    }
+  ]
+}
