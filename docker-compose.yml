@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: device-management-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: device_management
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - device-management-network
+
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: device-management-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - device-management-network
+
+  # Main Application
+  app:
+    build: .
+    container_name: device-management-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/device_management?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      REDIS_DB: 0
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:8080
+      MAX_REQUEST_SIZE: 10mb
+      LOG_LEVEL: info
+      AUTH_RATE_LIMIT: 5
+      DEVICE_RATE_LIMIT: 100
+      ANALYTICS_RATE_LIMIT: 50
+      EXPORT_RATE_LIMIT: 10
+      GENERAL_RATE_LIMIT: 200
+      DB_MAX_POOL_SIZE: 10
+      DB_MIN_POOL_SIZE: 2
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+    networks:
+      - device-management-network
+
+  # Export Worker (separate container for job processing)
+  worker:
+    build: .
+    container_name: device-management-worker
+    restart: unless-stopped
+    command: node workers/exportWorker.js
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/device_management?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      REDIS_DB: 0
+      LOG_LEVEL: info
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+    networks:
+      - device-management-network
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: device-management-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - device-management-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  device-management-network:
+    driver: bridge
